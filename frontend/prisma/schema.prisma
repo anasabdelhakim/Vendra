@@ -12,23 +12,6 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
-
-model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  posts Post[]
-}
-
-model Post {
-  id        Int     @id @default(autoincrement())
-  title     String
-  content   String?
-  published Boolean @default(false)
-  authorId  Int
-  author    User    @relation(fields: [authorId], references: [id])
-}
-
 model Profile {
   id          String   @id @db.Uuid
   full_name   String?
@@ -36,5 +19,22 @@ model Profile {
   email       String?
   is_verified Boolean  @default(false)
   created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  updated_at  DateTime @default(now())
+  @@map("profiles")
+}
+
+model EmailVerificationSession {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String?  @db.Uuid
+  email             String
+  token             String
+  is_password_reset Boolean  @default(false)
+  used              Boolean  @default(false)
+  created_at        DateTime @default(now())
+  expires_at        DateTime
+
+  @@index([email])
+  @@index([token])
+  @@index([user_id])
+  @@map("email_verification_sessions")
 }

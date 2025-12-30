@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,11 +16,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Loader } from "lucide-react";
 
-import { formSchemas } from "@/validations/zod";
+import { forgetPasswordSchema } from "@/validations/zod";
 import { forgetPassword } from "@/actions/auth";
-import { useActionState } from "react";
 
-// Field components from shadcn Field API
+// Field components
 import {
   Field,
   FieldDescription,
@@ -29,21 +29,22 @@ import {
 
 type ActionServer = {
   success: boolean;
-  errorMessage: {
-    username: string;
+  errorMessage?: {
+    username?: string[];
     server?: string[];
   };
 };
 
 export default function ForgetPasswordPreview() {
-  const form = useForm<z.infer<typeof formSchemas>>({
-    resolver: zodResolver(formSchemas),
+  const form = useForm<z.infer<typeof forgetPasswordSchema>>({
+    resolver: zodResolver(forgetPasswordSchema),
     defaultValues: { username: "" },
+    mode: "onTouched",
   });
 
   const [state, action, pending] = useActionState<ActionServer>(
     forgetPassword,
-    { errorMessage: {} }
+    { success: false, errorMessage: {} }
   );
 
   return (
@@ -56,59 +57,57 @@ export default function ForgetPasswordPreview() {
       </CardHeader>
 
       <CardContent>
-        <form
-          action={action}
-          className="space-y-8"
-          onSubmit={form.handleSubmit(() => {})}
-        >
-          {/* Email Field */}
+        <form action={action} className="space-y-6">
+          {/* EMAIL FIELD */}
           <Field>
             <FieldLabel htmlFor="username">Email</FieldLabel>
 
-            <Input
-              id="username"
-              type="email"
-              placeholder="johndoe@mail.com"
-              autoComplete="email"
-              {...form.register("username")}
-              aria-invalid={!!form.formState.errors.username}
+            <Controller
+              control={form.control}
+              name="username"
+              render={({ field, fieldState }) => (
+                <>
+                  <Input
+                    id="username"
+                    type="email"
+                    placeholder="johndoe@mail.com"
+                    autoComplete="email"
+                    disabled={pending}
+                    {...field}
+                  />
+
+                  <FieldError>
+                    {fieldState.error?.message ||
+                      state.errorMessage?.username?.[0]}
+                  </FieldError>
+                </>
+              )}
             />
 
-            {/* optional helper text */}
             <FieldDescription>
               We’ll send you a reset link if this email exists.
             </FieldDescription>
-
-            {/* error from Zod validation */}
-            {form.formState.errors.username?.message && (
-              <FieldError>
-                {form.formState.errors.username.message}
-              </FieldError>
-            )}
-
-            {/* error from server action */}
-            {state.errorMessage.username && (
-              <FieldError>{state.errorMessage.username}</FieldError>
-            )}
           </Field>
 
-          {/* server errors not tied to a field */}
-          {state.errorMessage.server && (
-            <p className="text-destructive">{state.errorMessage.server}</p>
-          )}
-
-          {/* success message */}
-          {state.success && !state.errorMessage.username && (
-            <p className="text-green-500">
-              Check your email to reset your password
+          {/* SERVER-ONLY ERROR */}
+          {state.errorMessage?.server && (
+            <p className="text-destructive text-sm">
+              {state.errorMessage.server}
             </p>
           )}
 
-          {/* submit button */}
+          {/* SUCCESS MESSAGE */}
+          {state.success && (
+            <p className="text-green-500 text-sm">
+              Check your email to reset your password.
+            </p>
+          )}
+
+          {/* SUBMIT BUTTON */}
           <Button type="submit" className="w-full" disabled={pending}>
             {pending ? (
               <span className="flex items-center gap-2">
-                <Loader className="text-muted-foreground size-5 animate-spin" />
+                <Loader className="size-5 animate-spin" />
                 Sending...
               </span>
             ) : (

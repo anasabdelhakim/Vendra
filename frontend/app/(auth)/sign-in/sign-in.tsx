@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,12 +21,7 @@ import { loginFormSchema } from "@/validations/zod";
 import { LoginAccount, signInWithGoogle } from "@/actions/auth";
 
 // New Field components
-import {
-  Field,
-  FieldLabel,
-  FieldError,
-  FieldDescription,
-} from "@/components/ui/field";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 
 type ServerActionReturn = {
   success: boolean;
@@ -73,60 +68,78 @@ export function LoginForm() {
       </CardHeader>
 
       <CardContent>
-        <form
-          action={action}
-          className="space-y-4"
-          onSubmit={form.handleSubmit(() => {})}
-        >
+        <form action={action} className="space-y-4">
           {/* USERNAME FIELD */}
           <Field>
             <FieldLabel htmlFor="username">Username</FieldLabel>
-            <Input
-              id="username"
-              type="email"
-              placeholder="Enter your Email"
-              autoFocus
-              disabled={pending}
-              {...form.register("username")}
-              onKeyDown={handelFocusNext("password")}
+
+            <Controller
+              control={form.control}
+              name="username"
+              render={({ field, fieldState }) => (
+                <>
+                  <Input
+                  required
+                    id="username"
+                    type="email"
+                    placeholder="Enter your Email"
+                    autoFocus
+                    disabled={pending}
+                    {...field}
+                    onKeyDown={handelFocusNext("password")}
+                  />
+
+                  <FieldError>
+                    {fieldState.error?.message ||
+                      state.errorMessage?.username?.[0]}
+                  </FieldError>
+                </>
+              )}
             />
-            <FieldError>
-              {state.errorMessage?.username?.[0] ||
-                form.formState.errors.username?.message}
-            </FieldError>
           </Field>
 
           {/* PASSWORD FIELD */}
           <Field>
             <FieldLabel htmlFor="password">Password</FieldLabel>
-            <div className="relative">
-              <Input
-                id="password"
-                type={seePassword ? "text" : "password"}
-                placeholder="Enter your password"
-                disabled={pending}
-                {...form.register("password")}
-                aria-invalid={!!form.formState.errors.password}
-              />
-              {!isPasswordEmpty &&
-                (seePassword ? (
-                  <Eye
-                    size={20}
-                    onClick={handletogglePaasword}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
-                  />
-                ) : (
-                  <EyeOff
-                    size={20}
-                    onClick={handletogglePaasword}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
-                  />
-                ))}
-            </div>
-            <FieldError>
-              {state.errorMessage?.password?.[0] ||
-                form.formState.errors.password?.message}
-            </FieldError>
+
+            <Controller
+              control={form.control}
+              name="password"
+              render={({ field, fieldState }) => (
+                <>
+                  <div className="relative">
+                    <Input
+                    required
+                      id="password"
+                      type={seePassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      disabled={pending}
+                      {...field}
+                    />
+
+                    {!isPasswordEmpty &&
+                      (seePassword ? (
+                        <Eye
+                          size={20}
+                          onClick={handletogglePaasword}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+                        />
+                      ) : (
+                        <EyeOff
+                          size={20}
+                          onClick={handletogglePaasword}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+                        />
+                      ))}
+                  </div>
+
+                  <FieldError>
+                    {fieldState.error?.message ||
+                      state.errorMessage?.password?.[0]}
+                  </FieldError>
+                </>
+              )}
+            />
           </Field>
 
           {/* SERVER ERROR */}

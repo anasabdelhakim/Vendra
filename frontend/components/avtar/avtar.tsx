@@ -20,7 +20,7 @@ const AvatarSec = ({ user, profile }) => {
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="ghost" className="h-10 w-10 p-0 rounded-full">
-          <Avatar>
+          <Avatar className="h-10 w-10">
             <AvatarImage
               src={profile?.avatar_url || user.user_metadata?.picture}
             />
@@ -33,7 +33,7 @@ const AvatarSec = ({ user, profile }) => {
 
       <PopoverContent align="end" className="w-64">
         {/* User Info */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-2">
           <Avatar className="h-12 w-12">
             <AvatarImage
               src={profile?.avatar_url || user.user_metadata?.picture}
@@ -49,7 +49,7 @@ const AvatarSec = ({ user, profile }) => {
           </div>
         </div>
 
-        <div className="flex flex-col space-y-1">
+        <div className="flex flex-col space-y-0.5">
           {/* Profile Actions */}
           <Button variant="ghost" className="justify-start gap-2">
             <User className="h-4 w-4" /> View Profile
@@ -59,7 +59,7 @@ const AvatarSec = ({ user, profile }) => {
             <Settings className="h-4 w-4" /> Account Settings
           </Button>
 
-          <div className="border-t border-muted my-2" />
+          <div className="border-t border-muted my-0.5" />
 
           {/* Logout */}
           <Button

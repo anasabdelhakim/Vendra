@@ -12,10 +12,12 @@ export default async function AV() {
     return (
       <div className="flex items-center gap-3">
         <Link href="/sign-in">
-          <Button variant="ghost">Sign in</Button>
+          <Button variant="ghost" className="px-6 py-5">
+            Sign in
+          </Button>
         </Link>
         <Link href="/about">
-          <Button className="shadow-sm">Get Started</Button>
+          <Button className="px-6 py-5">Get Started</Button>
         </Link>
       </div>
     );

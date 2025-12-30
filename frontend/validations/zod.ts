@@ -35,7 +35,9 @@ export const otpFormSchema = z.object({
     .max(6, "OTP must be 6 digits")
     .regex(/^\d+$/, "OTP must be numbers"),
 });
-
+export const forgetPasswordSchema = z.object({
+  username: z.string().email("Please enter a valid email"),
+});
 export const resetPasswordSchema = z
   .object({
     password: passwordSchema,

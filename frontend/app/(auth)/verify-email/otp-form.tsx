@@ -76,7 +76,7 @@ export default function OTPForm() {
       </CardHeader>
 
       <CardContent>
-        <form action={action} className="space-y-6">
+        <form action={action} className="space-y-3">
           <Controller
             name="otp"
             control={form.control}

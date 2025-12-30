@@ -13,7 +13,6 @@ import crypto from "crypto";
 import { resend } from "@/lib/resend";
 import VerificationEmail from "@/lib/emails/verification-email";
 import ResetPasswordEmail from "@/lib/emails/reset-password-email";
-import { revalidatePath } from "next/cache";
 
 // ============================
 // OTP GENERATION
@@ -137,9 +136,16 @@ export const SignUpAccount = async (_: unknown, formData: FormData) => {
     username: formData.get("username") as string,
     password: formData.get("password") as string,
     confirmPassword: formData.get("confirmPassword") as string,
+   
   };
+  console.log("FORM DATA:", {
+    username: formData.get("username"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
 
   const parsed = formSchemas.safeParse(value);
+  console.log("PARSED:", parsed);
   if (!parsed.success)
     return { success: false, errorMessage: parsed.error.flatten().fieldErrors };
 
@@ -151,8 +157,9 @@ export const SignUpAccount = async (_: unknown, formData: FormData) => {
   });
   if (error)
     return { success: false, errorMessage: { server: [error.message] } };
+  console.log("SIGNUP DATA:", signUpData);
   const otp = await generateEmailOTP(username, false, signUpData.user?.id);
-
+  console.log("GENERATED OTP:", otp);
   await sendVerificationEmail(username, otp);
 
   const cookiesStore = await cookies();
@@ -236,7 +243,7 @@ export async function getUserProfile() {
   const { data, error } = await supabase.auth.getClaims();
 
   if (error || !data?.claims) {
-    return null; 
+    return null;
   }
 
   const claims = data.claims;
@@ -261,7 +268,6 @@ export async function getUserProfile() {
   };
 }
 
-
 // ============================
 // FORGET PASSWORD
 // ============================
@@ -270,15 +276,26 @@ export async function forgetPassword(_: unknown, formData: FormData) {
   const supabase = createAdminClient();
 
   const { data, error } = await supabase.auth.admin.listUsers();
-  if (error)
-    return { success: false, errorMessage: { username: error.message } };
 
-  const user = data.users.find((u) => u.email === email);
-  if (!user)
+  if (error) {
     return {
       success: false,
-      errorMessage: { username: "Email not registered" },
+      errorMessage: {
+        username: [error.message],
+      },
     };
+  }
+
+  const user = data.users.find((u) => u.email === email);
+
+  if (!user) {
+    return {
+      success: false,
+      errorMessage: {
+        username: ["Email not registered"],
+      },
+    };
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -286,16 +303,19 @@ export async function forgetPassword(_: unknown, formData: FormData) {
     .eq("id", user.id)
     .single();
 
-  if (!profile?.is_verified)
+  if (!profile?.is_verified) {
     return {
       success: false,
-      errorMessage: { server: "Account not verified." },
+      errorMessage: {
+        server: ["Account not verified."],
+      },
     };
+  }
 
-  // ✅ Generate password reset token using existing function
+  // ✅ Generate password reset token
   const token = await generateEmailOTP(email, true, user.id);
 
-  // ✅ Build reset link with only the token in URL
+  // ✅ Build reset link
   const resetLink = `${process.env.SITE_URL}/reset-password?token=${token}`;
 
   // ✅ Send reset email
@@ -303,6 +323,7 @@ export async function forgetPassword(_: unknown, formData: FormData) {
 
   return { success: true };
 }
+
 
 // ============================
 // OTP VERIFY
@@ -337,6 +358,7 @@ export async function verifyOtpAction(_: unknown, formData: FormData) {
 // ============================
 // RESET PASSWORD
 // ============================
+
 export const resetPasswordAction = async (_: unknown, formData: FormData) => {
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;

@@ -1,91 +1,76 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { createAdminClient } from "./admin";
 
-// List of routes that require authentication
-const protectedRoutes = ["about"];
-const AuthRoutes = [
+const protectedRoutes = ["/about"];
+const authRoutes = [
   "/sign-in",
   "/sign-up",
   "/forget-password",
   "/reset-password",
 ];
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!;
-
 export async function updateSession(request: NextRequest) {
   const supabaseResponse = NextResponse.next();
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
-    cookies: {
-      getAll: () => request.cookies.getAll(),
-      setAll: (cookiesToSet) => {
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
-        );
-      },
-    },
-  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
+    { cookies: request.cookies }
+  );
 
   const pathname = request.nextUrl.pathname;
 
-  // 1️⃣ Get authenticated claims (replace getUser)
-  const { data: claimsData, error } = await supabase.auth.getClaims();
-  if (error) console.error("getClaims error:", error);
-
+  // 1️⃣ Get JWT claims
+  const { data: claimsData } = await supabase.auth.getClaims();
   const claims = claimsData?.claims || null;
-  const isAuth = !!claims;
-  // -------------------------------
-  // 2️⃣ Protect general routes
-  // -------------------------------
-  if (pathname.startsWith("/verify-email") && !isAuth) {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
+
+  // 2️⃣ Handle non-authenticated users
+  if (!claims) {
+    if (protectedRoutes.some((route) => pathname.startsWith(route))) {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
+    return supabaseResponse;
   }
 
-  if (AuthRoutes.some((route) => pathname.startsWith(route)) && isAuth) {
-    // Already logged in → redirect to homepage
+  // 3️⃣ Already authenticated users trying to access auth routes
+  if (authRoutes.some((route) => pathname.startsWith(route))) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
+  // 4️⃣ Lightweight check if user exists
+  const supabaseAdmin = createAdminClient();
+  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(
+    claims.sub
+  );
+  if (!userData.user) {
+    // User doesn’t exist → clear session cookies
+    supabaseResponse.cookies.delete("sb-access-token");
+    supabaseResponse.cookies.delete("sb-refresh-token");
+    return NextResponse.redirect(new URL("/sign-in", request.url));
+  }
+
+  const isVerified = claims?.is_verified;
+
+  // 5️⃣ Protect normal routes
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {
-    if (!isAuth) {
-      return NextResponse.redirect(new URL("/sign-in", request.url));
-    }
-
-    // Fetch profile to check verification
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_verified")
-      .eq("id", claims?.sub) // use claims.sub as user ID
-      .single();
-
-    if (!profile?.is_verified) {
+    if (!isVerified) {
       return NextResponse.redirect(new URL("/verify-email", request.url));
-    }
-    if (profile?.is_verified) {
-      return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
-  // -------------------------------
-  // 3️⃣ Password reset page
-  // -------------------------------
+  // 6️⃣ Reset-password page (DB call required)
   if (pathname.startsWith("/reset-password")) {
-    const cookiesStore = request.cookies;
-    const cookieEmail = cookiesStore.get("reset_email")?.value;
-    const cookieToken = cookiesStore.get("reset_token")?.value;
+    const token = request.nextUrl.searchParams.get("token");
+    if (!token) return NextResponse.redirect(new URL("/sign-in", request.url));
 
-    if (!cookieEmail || !cookieToken) {
-      return NextResponse.redirect(new URL("/sign-in", request.url));
-    }
-
-    const { data: tokenSession } = await supabase
+    const { data: tokenSession } = await supabaseAdmin
       .from("email_verification_sessions")
       .select("*")
-      .eq("token", cookieToken)
+      .eq("token", token)
       .eq("used", false)
-      .eq("email", cookieEmail)
       .eq("is_password_reset", true)
-      .single();
+      .maybeSingle();
 
     if (!tokenSession) {
       return NextResponse.redirect(new URL("/sign-in", request.url));

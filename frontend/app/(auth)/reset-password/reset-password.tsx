@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Check, Circle, Eye, EyeOff, Loader } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 
 import { resetPasswordSchema } from "@/validations/zod";
 import { resetPasswordAction } from "@/actions/auth";
@@ -21,7 +21,6 @@ import { passwordRules } from "@/constants/passwordValidations";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 
-// New Field components
 import {
   Field,
   FieldLabel,
@@ -48,6 +47,7 @@ export default function ResetPasswordForm() {
       password: "",
       confirmPassword: "",
     },
+    mode: "onTouched",
   });
 
   const [state, action, pending] = useActionState<ActionServer>(
@@ -55,22 +55,14 @@ export default function ResetPasswordForm() {
     { errorMessage: {} }
   );
 
-  const passwordTrackinput = form.watch("password");
-  const [showicon, setShowicon] = useState(false);
+  const passwordValue = form.watch("password");
   const [seePassword, setSeePassword] = useState(false);
-  const isPasswordEmpty = passwordTrackinput === "";
+
+  const togglePassword = () => setSeePassword((prev) => !prev);
 
   useEffect(() => {
-    if (isPasswordEmpty) {
-      setShowicon(false);
-      setSeePassword(false);
-    }
-  }, [isPasswordEmpty]);
-
-  const togglePassword = () => {
-    setShowicon(!showicon);
-    setSeePassword(!seePassword);
-  };
+    if (!passwordValue) setSeePassword(false);
+  }, [passwordValue]);
 
   if (state.success) {
     return (
@@ -102,88 +94,88 @@ export default function ResetPasswordForm() {
       </CardHeader>
 
       <CardContent>
-        <form
-          action={action}
-          className="space-y-4"
-          onSubmit={form.handleSubmit(() => {})}
-        >
+        <form action={action} className="space-y-4">
           {/* PASSWORD FIELD */}
           <Field>
             <FieldLabel htmlFor="password">New Password</FieldLabel>
-            <div className="relative">
-              <Input
-                id="password"
-                type={seePassword ? "text" : "password"}
-                {...form.register("password")}
-                placeholder="Enter new password"
-                disabled={pending}
-                aria-invalid={!!form.formState.errors.password}
-              />
-              {!isPasswordEmpty &&
-                (seePassword ? (
-                  <EyeOff
-                    size={20}
-                    onClick={togglePassword}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+            <Controller
+              name="password"
+              control={form.control}
+              rules={{ required: "Password is required" }}
+              render={({ field, fieldState }) => (
+                <div className="relative">
+                  <Input
+                    {...field}
+                    id="password"
+                    type={seePassword ? "text" : "password"}
+                    placeholder="Enter new password"
+                    disabled={pending}
+                    aria-invalid={!!fieldState.error}
                   />
-                ) : (
-                  <Eye
-                    size={20}
-                    onClick={togglePassword}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
-                  />
-                ))}
-            </div>
-
-            <FieldDescription>
-              Your password must satisfy all the rules below.
-            </FieldDescription>
-
+                  {field.value && (
+                    seePassword ? (
+                      <EyeOff
+                        size={20}
+                        onClick={togglePassword}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+                      />
+                    ) : (
+                      <Eye
+                        size={20}
+                        onClick={togglePassword}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+                      />
+                    )
+                  )}
+                  {fieldState.error && (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  )}
+                </div>
+              )}
+            />
+            <FieldDescription>Your password must satisfy all rules below.</FieldDescription>
             {passwordRules.map((rule) => (
               <p
                 key={rule.message}
                 className={cn(
                   "flex items-center gap-1 text-sm",
-                  rule.test(passwordTrackinput)
+                  rule.test(passwordValue)
                     ? "text-green-600"
                     : state.errorMessage?.password
                     ? "text-red-600"
                     : ""
                 )}
               >
-                {rule.test(passwordTrackinput) ? (
-                  <Check size={12} />
-                ) : (
-                  <Circle size={12} />
-                )}
+                {rule.test(passwordValue) ? <Check size={12} /> : <Circle size={12} />}
                 {rule.message}
               </p>
             ))}
-
-            {form.formState.errors.password?.message && (
-              <FieldError>{form.formState.errors.password.message}</FieldError>
-            )}
           </Field>
 
           {/* CONFIRM PASSWORD FIELD */}
           <Field>
             <FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm your password"
-              {...form.register("confirmPassword")}
-              disabled={pending}
-              aria-invalid={!!form.formState.errors.confirmPassword}
+            <Controller
+              name="confirmPassword"
+              control={form.control}
+              rules={{ required: "Please confirm your password" }}
+              render={({ field, fieldState }) => (
+                <>
+                  <Input
+                    {...field}
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    disabled={pending}
+                    aria-invalid={!!fieldState.error}
+                  />
+                  {fieldState.error && (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  )}
+                </>
+              )}
             />
-            <FieldDescription>
-              Retype your password to confirm.
-            </FieldDescription>
-            {form.formState.errors.confirmPassword?.message && (
-              <FieldError>
-                {form.formState.errors.confirmPassword.message}
-              </FieldError>
-            )}
+            <FieldDescription>Retype your password to confirm.</FieldDescription>
           </Field>
 
           {/* SERVER ERRORS */}
