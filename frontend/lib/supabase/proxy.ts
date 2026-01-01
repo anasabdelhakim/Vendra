@@ -16,14 +16,26 @@ export async function updateSession(request: NextRequest) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
-    { cookies: request.cookies }
+    {
+      cookies: {
+        getAll: () =>
+          request.cookies
+            .getAll()
+            .map((c) => ({ name: c.name, value: c.value })),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            supabaseResponse.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
   );
 
   const pathname = request.nextUrl.pathname;
 
   // 1️⃣ Get JWT claims
   const { data: claimsData } = await supabase.auth.getClaims();
-  const claims = claimsData?.claims || null;
+  const claims = claimsData?.claims;
 
   // 2️⃣ Handle non-authenticated users
   if (!claims) {
@@ -38,25 +50,30 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // 4️⃣ Lightweight check if user exists
+  // 4️⃣ Fetch profile to get is_verified
   const supabaseAdmin = createAdminClient();
-  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(
-    claims.sub
-  );
-  if (!userData.user) {
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .select("is_verified")
+    .eq("id", claims.sub)
+    .single();
+
+  const isVerified = profile?.is_verified ?? false;
+  console.log("Verified:", isVerified);
+
+  if (!profile || profileError) {
     // User doesn’t exist → clear session cookies
     supabaseResponse.cookies.delete("sb-access-token");
     supabaseResponse.cookies.delete("sb-refresh-token");
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
-  const isVerified = claims?.is_verified;
-
   // 5️⃣ Protect normal routes
-  if (protectedRoutes.some((route) => pathname.startsWith(route))) {
-    if (!isVerified) {
-      return NextResponse.redirect(new URL("/verify-email", request.url));
-    }
+  if (
+    protectedRoutes.some((route) => pathname.startsWith(route)) &&
+    !isVerified
+  ) {
+    return NextResponse.redirect(new URL("/verify-email", request.url));
   }
 
   // 6️⃣ Reset-password page (DB call required)
