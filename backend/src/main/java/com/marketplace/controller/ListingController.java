@@ -29,10 +29,10 @@ public class ListingController {
         return listingService.getMyListings();
     }
 
-    // Explore listings
+    // Explore listings (approved only)
     @GetMapping
     public List<Listing> getAllListings() {
-        return listingService.getAllActiveListings();
+        return listingService.getAllApprovedListings();
     }
 
     // Listing details
@@ -43,14 +43,10 @@ public class ListingController {
 
     // Edit listing
     @PutMapping("/{id}")
-    public Listing updateListing(
-            @PathVariable Long id,
-            @RequestBody ListingRequest request
-    ) {
+    public Listing updateListing(@PathVariable Long id, @RequestBody ListingRequest request) {
         return listingService.updateListing(id, request);
     }
-
-    // Mark as sold
+    // Mark as sold (temporary mapping to REJECTED)
     @PatchMapping("/{id}/sold")
     public void markAsSold(@PathVariable Long id) {
         listingService.markAsSold(id);

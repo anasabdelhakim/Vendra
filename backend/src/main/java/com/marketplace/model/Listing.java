@@ -11,11 +11,10 @@ public class Listing {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Ownership (seller)
-    @Column(nullable = false)
+    // Keep nullable for now (your DB currently doesn't show seller_id column)
+    @Column(name = "seller_id")
     private Long sellerId;
 
-    // Car basics
     @Column(nullable = false)
     private String title;
 
@@ -25,25 +24,38 @@ public class Listing {
     @Column(nullable = false)
     private Double price;
 
+    @Column(nullable = false)
     private String brand;
-    private String carModel;
+
+    // DB column is `model` and it's NOT NULL
+    @Column(name = "model", nullable = false)
+    private String model;
+
+    @Column(name = "year")
     private Integer year;
+
     private Integer mileage;
+
     private String location;
 
-    // Listing lifecycle
+    @Column(name = "fuel_type")
+    private String fuelType;
+
+    // DB constraint allows only PENDING/APPROVED/REJECTED
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Status status = Status.ACTIVE;
+    private Status status = Status.PENDING;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    @Column(name = "updated_at")
     private Instant updatedAt = Instant.now();
 
     public enum Status {
-        ACTIVE,
-        SOLD
+        PENDING,
+        APPROVED,
+        REJECTED
     }
 
     @PreUpdate
@@ -51,40 +63,105 @@ public class Listing {
         this.updatedAt = Instant.now();
     }
 
-    // Getters and Setters
+    // Getters / Setters
 
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
 
-    public Long getSellerId() { return sellerId; }
-    public void setSellerId(Long sellerId) { this.sellerId = sellerId; }
+    public Long getSellerId() {
+        return sellerId;
+    }
 
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
+    public void setSellerId(Long sellerId) {
+        this.sellerId = sellerId;
+    }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getTitle() {
+        return title;
+    }
 
-    public Double getPrice() { return price; }
-    public void setPrice(Double price) { this.price = price; }
+    public void setTitle(String title) {
+        this.title = title;
+    }
 
-    public String getBrand() { return brand; }
-    public void setBrand(String brand) { this.brand = brand; }
+    public String getDescription() {
+        return description;
+    }
 
-    public String getCarModel() { return carModel; }
-    public void setCarModel(String carModel) { this.carModel = carModel; }
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-    public Integer getYear() { return year; }
-    public void setYear(Integer year) { this.year = year; }
+    public Double getPrice() {
+        return price;
+    }
 
-    public Integer getMileage() { return mileage; }
-    public void setMileage(Integer mileage) { this.mileage = mileage; }
+    public void setPrice(Double price) {
+        this.price = price;
+    }
 
-    public String getLocation() { return location; }
-    public void setLocation(String location) { this.location = location; }
+    public String getBrand() {
+        return brand;
+    }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    public Integer getYear() {
+        return year;
+    }
+
+    public void setYear(Integer year) {
+        this.year = year;
+    }
+
+    public Integer getMileage() {
+        return mileage;
+    }
+
+    public void setMileage(Integer mileage) {
+        this.mileage = mileage;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getFuelType() {
+        return fuelType;
+    }
+
+    public void setFuelType(String fuelType) {
+        this.fuelType = fuelType;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 }
