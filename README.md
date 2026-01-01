@@ -147,12 +147,12 @@ The application was developed and tested in a local environment. Public deployme
 ```
 ---
 
-### License
+## License
 
 This project was developed for academic purposes as part of the Software Engineering course.
 
 ---
 
-### Acknowledgments
+## Acknowledgments
 
 Special thanks to the course instructors and teaching assistants for their guidance and support.
