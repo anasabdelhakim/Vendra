@@ -25,6 +25,7 @@ public class ListingService {
     }
 
     public Listing createListing(ListingRequest request) {
+        validate(request);
         Listing listing = new Listing();
         listing.setSellerId(getCurrentUserId());
 
@@ -52,11 +53,12 @@ public class ListingService {
     }
 
     public Listing updateListing(Long listingId, ListingRequest request) {
+        validate(request);
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new RuntimeException("Listing not found"));
+                .orElseThrow(() -> new IllegalStateException("Listing not found"));
 
         if (listing.getSellerId() == null || !listing.getSellerId().equals(getCurrentUserId())) {
-            throw new RuntimeException("You are not allowed to edit this listing");
+            throw new IllegalStateException("You are not allowed to edit this listing");
         }
 
         listing.setTitle(request.getTitle());
@@ -81,10 +83,10 @@ public class ListingService {
      */
     public void markAsSold(Long listingId) {
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new RuntimeException("Listing not found"));
+                .orElseThrow(() -> new IllegalStateException("Listing not found"));
 
         if (listing.getSellerId() == null || !listing.getSellerId().equals(getCurrentUserId())) {
-            throw new RuntimeException("You are not allowed to update this listing");
+            throw new IllegalStateException("You are not allowed to update this listing");
         }
 
         listing.setStatus(Listing.Status.REJECTED);
@@ -97,6 +99,22 @@ public class ListingService {
 
     public Listing getListingById(Long id) {
         return listingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Listing not found"));
+                .orElseThrow(() -> new IllegalStateException("Listing not found"));
     }
+
+    private void validate(ListingRequest request) {
+        if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
+            throw new IllegalArgumentException("Title is required");
+        }
+        if (request.getBrand() == null || request.getBrand().trim().isEmpty()) {
+            throw new IllegalArgumentException("Brand is required");
+        }
+        if (request.getCarModel() == null || request.getCarModel().trim().isEmpty()) {
+            throw new IllegalArgumentException("Car model is required");
+        }
+        if (request.getPrice() == null || request.getPrice() <= 0) {
+            throw new IllegalArgumentException("Price must be greater than 0");
+        }
+    }
+
 }
